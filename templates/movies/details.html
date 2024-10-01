@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="container-fluid" style="padding-left: 155px; padding-right: 140px; margin-top: -14px;">
+    <div class="row">
+        <!-- Title and Prediction -->
+        <div class="col-md-12">
+            <div class="row">
+                <div class="col-md-8">
+                    <h1 class="mt-4 mb-0" style="font-size: 50px;">{{ detail.name }} <button id="predictionButton" class="btn btn-primary" onclick="changeBoxShadow();" onmouseover="this.style.backgroundColor='#7a620c';" onmouseout="this.style.backgroundColor='#fbd240';" style="background-color: #e9bf28 ;border-color: #ffc800; color: rgb(0, 0, 0); font-weight: bold; font-size: 15px; margin-left: 10px;">Predict</button></h1>
+                    <div>
+                        {% for genre in genres %}
+                            <span class="badge badge-info" style="margin-top: 10px; margin-bottom: 5px; margin-right: 2px; margin-left: 2px; background-color: #538e57 ; color: #ffffff; font-weight: bold; font-size: 18px;">{{ genre }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col-md-4" style="margin-top: 34px; margin-bottom: -30px; position: relative;">
+                    <div id="loadingAnimation" style="position: absolute; top: 0; left: 0; display: none;">
+                        <img src="{% static 'icons/loading.gif' %}" alt="Loading..." style="width: 120px; height: 68px; margin-left: 289px;">
+                    </div>
+                    <span id="predictionResult" style="position: absolute; top: 0; right: 0; display: none; color:rgb(0, 0, 0); text-transform: uppercase; font-weight: bold; font-size: 38px;"></span>
+                </div>
+            </div>
+            <hr>
+        </div>
+    </div>
+   
+    <div class="container" style="max-width: 1600px; max-height: 700px;">
+        <div class="row" style="margin-top: -10px;">
+            <!-- Image Column -->
+            <div class="col-md-4 " style=" margin-bottom: 30px; margin-left: -12px; margin-right: -57px;" >
+                <div>
+                    {% if detail.image and detail.image.url %}
+                        <img class="img-fluid rounded" id="movie-image" src="{{ detail.image.url }}" alt="Card image cap" style="width: 78%; height: 520px; border-radius: 8px !important; margin-top: 22px;">
+                    {% else %}
+                        <img class="img-fluid rounded" id="movie-image" src="placeholder.jpg" alt="Placeholder image" style="width: 100%;">
+                    {% endif %}
+                </div>
+            </div>
+        
+            <!-- Trailer Column -->
+            <div class="col-md-8" style="border-left: 1px solid #ccc; margin-top: 12px; margin-bottom: 17px;">
+                <div class="jumbotron jumbotron-fluid rounded" id="trailer-container" style="margin: 0; padding: 0; position: relative; overflow: hidden; margin-left: 50px; margin-right: -87px; margin-top: 10px;">
+                    <iframe id="trailer-iframe" src="{{ yt_tr }}" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts" style="position: absolute; width: 100%; height: 100%; border: none; border-radius: 8px !important;"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Rest of the content -->
+    <div class="row" style="margin-top: 1px; border-top: 1px solid #dadada; margin-left: 2px; margin-right: -3px;">
+        <div class="col-md-12" style="margin-top: 80px;">
+            <!-- Movie Information -->
+            <h2>Movie Information</h2>
+            <hr>
+            <table class="table table-striped">
+                <tbody>
+                    <tr>
+                        <th scope="row">Title</th>
+                        <td>{{ detail.name }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Year</th>
+                        <td>{{ detail.year }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Plot</th>
+                        <td>{{ detail.Plot }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Runtime</th>
+                        <td>{{ detail.runtime }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Directors</th>
+                        <td>{{ detail.directors }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Writers</th>
+                        <td>{{ detail.writers }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Producers</th>
+                        <td>{{ detail.producers }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Cast</th>
+                        <td>{{ detail.cast }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Links</th>
+                        <td>
+                            <a href="{{ detail.IMDb_link }}" target="_blank">IMDb</a>&nbsp;&nbsp;
+                            <a href="{{ detail.Youtube_trailer_link }}" target="_blank">Youtube</a>&nbsp;&nbsp;
+                            <a href="#" onclick="openAllInstaLinks('{{ detail.c1_insta }}', '{{ detail.c2_insta }}', '{{ detail.c3_insta }}', '{{ detail.c4_insta }}')">Instagram</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Get the image and trailer elements
+    const movieImage = document.getElementById('movie-image');
+    const trailerContainer = document.getElementById('trailer-container');
+    const trailerIframe = document.getElementById('trailer-iframe');
+
+    // Set the trailer container height to match the image height
+    trailerContainer.style.height = movieImage.clientHeight + 'px';
+</script>
+
+<script>
+    document.getElementById("predictionButton").addEventListener("click", function() {
+        // Show loading animation
+        document.getElementById("loadingAnimation").style.display = "block";
+        // Assuming you have a variable 'movie_name' containing the movie name
+        var movieID = "{{ detail.id }}"; 
+
+        // Get CSRF token from cookies
+        var csrftoken = getCookie('csrftoken');
+
+        // Send an HTTP request to your server
+        fetch('/predict/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken // Pass CSRF token in the headers
+            },
+            body: JSON.stringify({ movie_ID: movieID })
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Prediction failed');
+            }
+        })
+        .then(data => {
+            if ('result' in data) {
+                // Check for variables pr and result
+                var result = data.result;
+                var pr;
+
+                if (result < 6) {
+                    pr = "Disaster";
+                } else if (result < 6.3) {
+                    pr = "Flop";
+                } else if (result < 7) {
+                   pr = "Average";
+                } else if (result < 8.5) {
+                   pr = "Hit";
+                } else if (result < 9) {
+                   pr = "SuperHit";
+                } else {
+                   pr = "Blockbuster";
+                }
+                
+                // Update the prediction result on the webpage
+                var yellowStarUrl = "{% static 'icons/star.svg' %}";
+                var yellowStar = '<img src="' + yellowStarUrl + '" alt="Star" style="width: 40px; height: 40px; margin-bottom: 14px; margin-right: 5px"/>';
+                document.getElementById("predictionResult").innerHTML = result + " : " + pr + " " + yellowStar;
+                document.getElementById("predictionResult").style.display = "block"; // Show the prediction result
+
+                // Hide loading animation
+                document.getElementById("loadingAnimation").style.display = "none";
+                console.log('Response Received');
+            } else {
+                // Handle other cases
+                console.log('Prediction failed');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Hide loading animation in case of error
+            console.log('Timeout');
+            document.getElementById("loadingAnimation").style.display = "none";
+        });
+    });
+
+    // Function to get CSRF token from cookies
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+
+<script>
+    function changeBoxShadow() {
+        var button = document.getElementById("predictionButton");
+        button.style.boxShadow = "0 0 0 0.1rem rgb(0, 0, 0)"; // Change the box-shadow as desired
+    }
+</script>
+
+<script>
+    function openAllInstaLinks(c1_insta, c2_insta, c3_insta, c4_insta) {
+        console.log("c1_insta:", c1_insta);
+        console.log("c2_insta:", c2_insta);
+        console.log("c3_insta:", c3_insta);
+        console.log("c4_insta:", c4_insta);
+
+        var instaLinks = [c1_insta, c2_insta, c3_insta, c4_insta];
+        instaLinks.forEach(function(link) {
+            console.log("Link:", link);
+            if (link && link !== 'None' && link.trim() !== '') {
+                window.open(link, '_blank');
+            }
+        });
+    }
+</script>
+
+{% endblock %}
