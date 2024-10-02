@@ -1,3 +1,4 @@
+![Logo](https://github.com/aditya8-8/MSP/blob/main/SCREENSHOTS/LOGO.png?raw=true)
 # Project Title
 
 **MSP** is designed to predict the success of a movie during both the production and post-production phases. By leveraging data available before a film's release, the system empowers stakeholders with predictive insights for decision-making.
